@@ -40,6 +40,5 @@ pipeline {
         failure {
             echo 'Build échoué – regarde les logs ci-dessus'
         }
-    }
 }
 
