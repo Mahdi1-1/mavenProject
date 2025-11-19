@@ -1,55 +1,55 @@
+// Jenkinsfile (Declarative Pipeline)
 pipeline {
     agent any
-    
-    triggers {
-        cron('H/5 * * * *')  // Toutes les 5 minutes
-    }
-    
+
     tools {
-        jdk 'JAVA_HOME'
-        maven 'maven3'
+        maven 'Maven-3.9'    // nom configuré dans Jenkins → Global Tool Configuration
+        jdk   'JDK-17'       // nom configuré dans Jenkins
     }
-    
-    options {
-        timeout(time: 1, unit: 'HOURS')
-    }
-    
-    environment {
-        APP_ENV = "DEV"
-    }
-    
+
     stages {
-        stage('Code Checkout') {
+        stage('Checkout') {
             steps {
-                echo "=====Checking out code from Git====="
-                checkout scm  // Utilise checkout scm au lieu de git
+                echo 'Récupération du code...'
+                checkout scm
             }
         }
-        
-        stage('Build Package') {
+
+        stage('Build & Test') {
             steps {
-                echo "=====Building Spring Boot application====="
-                sh 'mvn clean package -DskipTests'
+                echo 'Lancement des tests avec un vrai MySQL via Testcontainers...'
+                sh 'mvn -B clean verify'
+                // -B = mode batch (logs propres), clean verify = compile + test + package
             }
         }
-        
-        stage('Archive Artifacts') {
+
+        stage('Package') {
             steps {
-                echo "=====Archiving JAR file====="
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                echo 'Génération du JAR...'
+                sh 'mvn -B package -DskipTests'
+                // on saute les tests ici car déjà faits dans l’étape précédente
+            }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                echo 'JAR archivé avec succès !'
             }
         }
     }
-    
+
     post {
         always {
-            echo "======always======"
+            // Nettoyage des conteneurs Testcontainers (au cas où)
+            sh 'docker ps -q --filter "label=org.testcontainers" | xargs -r docker rm -f || true'
+            junit 'target/surefire-reports/*.xml'
         }
         success {
-            echo "=====pipeline executed successfully ====="
+            echo 'BUILD VERT ! Bravo Mahdi !'
         }
         failure {
-            echo "======pipeline execution failed======"
+            echo 'Build échoué — vérifie les logs'
         }
     }
 }
