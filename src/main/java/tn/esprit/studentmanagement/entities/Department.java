@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @ToString
 public class Department {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDepartment;
@@ -23,3 +24,4 @@ public class Department {
     @OneToMany(mappedBy = "department")
     private List<Student> students;
 }
+
