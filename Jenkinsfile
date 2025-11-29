@@ -1,12 +1,9 @@
 pipeline {
     agent any
-
     triggers {
         githubPush()
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 echo 'Récupération du code depuis GitHub...'
@@ -23,31 +20,22 @@ pipeline {
 
         stage('Build & SonarQube analysis') {
             steps {
-                script {
-                    echo "Analyse SonarQube en cours..."
-                    withSonarQubeEnv('My SonarQube Server') {
-                sh '''
-                    mvn -B clean verify sonar:sonar \
-                        -Dspring.datasource.url=jdbc:mysql://my-mysql:3306/mydb?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC \
-                        -Dspring.datasource.username=root \
-                        -Dspring.datasource.password= \
-                        -Dspring.datasource.hikari.connection-timeout=60000 \
-                        -Dspring.datasource.hikari.maximum-pool-size=5
-                '''
-            }
+                echo 'Analyse SonarQube en cours...'
+                withSonarQubeEnv('My SonarQube Server') {
+                    sh '''
+                        mvn -B clean verify sonar:sonar \
+                            -Dspring.datasource.url="jdbc:mysql://my-mysql:3306/mydb?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC" \
+                            -Dspring.datasource.username=root \
+                            -Dspring.datasource.password=
+                    '''
                 }
             }
         }
 
-        stage("Quality Gate") {
+        stage('Quality Gate') {
             steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    script {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
-                        }
-                    }
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -55,18 +43,17 @@ pipeline {
         stage('Archive JAR') {
             steps {
                 echo 'Archivage du fichier JAR...'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true, allowEmptyArchive: false
             }
         }
     }
 
     post {
         success {
-            echo ' BUILD RÉUSSI '
+            echo ' BUILD RÉUSSI – Tout est vert !'
         }
         failure {
-            echo ' ❌ Le build a échoué '
+            echo 'Le build a échoué'
         }
     }
 }
-
