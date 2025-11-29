@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     triggers {
-        // Déclenche le build à chaque push sur GitHub
         githubPush()
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo 'Récupération du code depuis GitHub...'
@@ -18,6 +18,30 @@ pipeline {
             steps {
                 echo 'Compilation avec Maven...'
                 sh 'mvn -B clean install -DskipTests'
+            }
+        }
+
+        stage('Build & SonarQube analysis') {
+            steps {
+                script {
+                    echo "Analyse SonarQube en cours..."
+                    withSonarQubeEnv('My SonarQube Server') {
+                        sh "mvn clean verify sonar:sonar"
+                    }
+                }
+            }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                    }
+                }
             }
         }
 
@@ -37,5 +61,4 @@ pipeline {
             echo ' ❌ Le build a échoué '
         }
     }
-}   
-
+}
