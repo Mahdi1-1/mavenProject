@@ -50,6 +50,31 @@ pipeline {
     }
 
     post {
+        always {
+        // Envoi du mail avec le lien SonarQube + statut Quality Gate
+        emailext (
+            subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+            body: """
+                <h2>Résultat du Build Jenkins</h2>
+                <p><strong>Statut :</strong> ${currentBuild.currentResult}</p>
+                <p><strong>Projet :</strong> ${env.JOB_NAME}</p>
+                <p><strong>Build # :</strong> ${env.BUILD_NUMBER}</p>
+                <p><strong>Durée :</strong> ${currentBuild.durationString}</p>
+                
+                <h3>SonarQube Analysis</h3>
+                <p>Lien direct vers le rapport : 
+                   <a href="${env.SONAR_HOST_URL}/dashboard?id=student-management">
+                   ${env.SONAR_HOST_URL}/dashboard?id=student-management</a></p>
+                
+                <p>Quality Gate : <strong>${currentBuild.currentResult == 'SUCCESS' ? 'PASSED' : 'FAILED'}</strong></p>
+                
+                <p>Voir les détails du build : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+            """,
+            to: "mahdi.masmoudi@esprit.tn, mahdimasmoudi300@gmail.com",  // mets les mails que tu veux
+            mimeType: "text/html",
+            attachLog: true
+        )
+    }
         success {
             echo ' BUILD RÉUSSI – Tout est vert !'
         }
@@ -58,4 +83,5 @@ pipeline {
         }
     }
 }
+
 
