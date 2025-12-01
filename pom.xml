@@ -28,8 +28,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- SonarQube -->
-        <sonar.projectKey>mon-projet</sonar.projectKey>
-        <sonar.projectName>Mon Projet</sonar.projectName>
+        <sonar.projectKey>student-management</sonar.projectKey>
+        <sonar.projectName>student-management</sonar.projectName>
         <sonar.host.url>http://localhost:9000</sonar.host.url>
 
         <lombok.version>1.18.34</lombok.version>
