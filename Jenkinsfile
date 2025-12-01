@@ -42,42 +42,32 @@ pipeline {
     }
 
     post {
-        always {
-            script {
-                // Récupérer le statut Quality Gate sans arrêter le build
-                def qgStatus = 'NON DÉTECTÉ'
-                try {
+    always {
+        script {
+            def qgStatus = 'NON DÉTECTÉ'
+            try {
+                timeout(time: 5, unit: 'MINUTES') {
                     def qg = waitForQualityGate(abortPipeline: false)
                     qgStatus = qg.status
-                } catch (err) {
-                    echo "Impossible de récupérer le Quality Gate : ${err}"
                 }
-
-                // Envoi du mail
-                emailext (
-                    subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
-                    body: """
-                        <h2>Résultat du Build Jenkins</h2>
-                        <p><strong>Statut :</strong> ${currentBuild.currentResult}</p>
-                        <p><strong>Projet :</strong> ${env.JOB_NAME}</p>
-                        <p><strong>Build # :</strong> ${env.BUILD_NUMBER}</p>
-                        <p><strong>Durée :</strong> ${currentBuild.durationString}</p>
-                        
-                        <h3>SonarQube Analysis</h3>
-                        <p>Lien direct vers le rapport : 
-                           <a href="${env.SONAR_HOST_URL}/dashboard?id=student-management">
-                           ${env.SONAR_HOST_URL}/dashboard?id=student-management</a></p>
-                        
-                        <p>Quality Gate : <strong>${qgStatus}</strong></p>
-                        
-                        <p>Voir les détails du build : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    """,
-                    to: "mahdi.masmoudi@esprit.tn, mahdimasmoudi300@gmail.com",
-                    mimeType: "text/html",
-                    attachLog: true
-                )
+            } catch (err) {
+                echo "Impossible de récupérer le Quality Gate : ${err}"
             }
+
+            emailext (
+                subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                body: """
+                    <h2>Résultat du Build Jenkins</h2>
+                    <p><strong>Statut :</strong> ${currentBuild.currentResult}</p>
+                    <p><strong>Quality Gate :</strong> <strong>${qgStatus}</strong></p>
+                    <p>Lien SonarQube : <a href="${env.SONAR_HOST_URL}/dashboard?id=student-management">${env.SONAR_HOST_URL}/dashboard?id=student-management</a></p>
+                """,
+                to: "mahdi.masmoudi@esprit.tn, mahdimasmoudi300@gmail.com",
+                mimeType: "text/html",
+                attachLog: true
+            )
         }
+    }
 
         success {
             echo 'BUILD RÉUSSI – Tout est vert !'
@@ -88,3 +78,4 @@ pipeline {
         }
     }
 }
+
