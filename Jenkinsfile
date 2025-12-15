@@ -16,7 +16,7 @@ pipeline {
                 checkout scm
             }
         }
-
+        
         stage('Build sans tests') {
             steps {
                 echo 'Compilation avec Maven...'
@@ -170,3 +170,4 @@ pipeline {
         }
     }
 }
+
