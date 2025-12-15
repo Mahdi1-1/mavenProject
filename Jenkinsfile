@@ -7,12 +7,12 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = 'dbd1711b-3842-486e-b5a9-c14f84df9324'
         DOCKER_IMAGE_NAME = 'mahdimasmoudi/student-management'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
-        KUBECONFIG_CREDENTIALS = 'kubeconfig-credentials' // ID des credentials Kubernetes dans Jenkins
+        KUBECONFIG_CREDENTIALS = 'kubeconfig-credentials'
     }
     stages {
         stage('Checkout') {
             steps {
-                echo 'Récupération du code depuis GitHub...'
+                echo 'Recuperation du code depuis GitHub...'
                 checkout scm
             }
         }
@@ -48,7 +48,7 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                echo 'Construction et push de l'image Docker...'
+                echo 'Construction et push de image Docker...'
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_HUB_CREDENTIALS}") {
                         def customImage = docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_TAG}")
@@ -61,35 +61,35 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                echo 'Déploiement sur Kubernetes...'
+                echo 'Deploiement sur Kubernetes...'
                 script {
                     withKubeConfig([credentialsId: "${KUBECONFIG_CREDENTIALS}"]) {
                         sh '''
-                            # Créer le namespace si nécessaire
+                            # Creer le namespace si necessaire
                             kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f -
                             
-                            # Déployer MySQL
-                            echo "=== Déploiement de MySQL ==="
-                            kubectl apply -f mysql-deployment.yaml
+                            # Deployer MySQL
+                            echo "=== Deploiement de MySQL ==="
+                            kubectl apply -f k8s/mysql-deployment.yaml
                             kubectl rollout status deployment/mysql -n devops --timeout=2m
                             
-                            # Mettre à jour l'image Spring App et déployer
-                            echo "=== Déploiement de Spring App ==="
+                            # Mettre a jour image Spring App et deployer
+                            echo "=== Deploiement de Spring App ==="
                             kubectl set image deployment/spring-app spring-app=${DOCKER_IMAGE_NAME}:${DOCKER_TAG} -n devops --record || true
-                            kubectl apply -f spring-deployment.yaml
+                            kubectl apply -f k8s/spring-deployment.yaml
                             
                             # Patcher le deployment pour utiliser la nouvelle image
-                            kubectl patch deployment spring-app -n devops -p '{"spec":{"template":{"spec":{"containers":[{"name":"spring-app","image":"'${DOCKER_IMAGE_NAME}:${DOCKER_TAG}'"}]}}}}'
+                            kubectl patch deployment spring-app -n devops -p "{\\"spec\\":{\\"template\\":{\\"spec\\":{\\"containers\\":[{\\"name\\":\\"spring-app\\",\\"image\\":\\"${DOCKER_IMAGE_NAME}:${DOCKER_TAG}\\"}]}}}}"
                             
                             # Attendre le rollout
                             kubectl rollout status deployment/spring-app -n devops --timeout=3m
                             
-                            # Afficher l'état du déploiement
-                            echo "=== État du déploiement ==="
+                            # Afficher etat du deploiement
+                            echo "=== Etat du deploiement ==="
                             kubectl get pods -n devops
                             kubectl get svc -n devops
-                            echo "=== Image déployée ==="
-                            kubectl get deployment spring-app -n devops -o jsonpath='{.spec.template.spec.containers[0].image}'
+                            echo "=== Image deployee ==="
+                            kubectl get deployment spring-app -n devops -o jsonpath="{.spec.template.spec.containers[0].image}"
                         '''
                     }
                 }
@@ -100,7 +100,7 @@ pipeline {
     post {
         always {
             script {
-                def qgStatus = 'NON DÉTECTÉ'
+                def qgStatus = 'NON DETECTE'
                 def k8sDeploymentStatus = 'NON DISPONIBLE'
                 def deployedImage = 'NON DISPONIBLE'
                 
@@ -108,7 +108,7 @@ pipeline {
                     def qg = waitForQualityGate(abortPipeline: false)
                     qgStatus = qg.status
                 } catch (err) {
-                    echo "Impossible de récupérer le Quality Gate : ${err}"
+                    echo "Impossible de recuperer le Quality Gate : ${err}"
                 }
                 
                 try {
@@ -124,17 +124,17 @@ pipeline {
                         ).trim()
                     }
                 } catch (err) {
-                    echo "Impossible de récupérer le statut Kubernetes : ${err}"
+                    echo "Impossible de recuperer le statut Kubernetes : ${err}"
                 }
 
                 emailext (
                     subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
                     body: """
-                        <h2>Résultat du Build Jenkins</h2>
+                        <h2>Resultat du Build Jenkins</h2>
                         <p><strong>Statut :</strong> ${currentBuild.currentResult}</p>
                         <p><strong>Projet :</strong> ${env.JOB_NAME}</p>
                         <p><strong>Build # :</strong> ${env.BUILD_NUMBER}</p>
-                        <p><strong>Durée :</strong> ${currentBuild.durationString}</p>
+                        <p><strong>Duree :</strong> ${currentBuild.durationString}</p>
                         
                         <h3>SonarQube Analysis</h3>
                         <p>Lien direct vers le rapport : 
@@ -149,10 +149,10 @@ pipeline {
                         <h3>Kubernetes Deployment</h3>
                         <p><strong>Namespace :</strong> devops</p>
                         <p><strong>Deployment Status :</strong> ${k8sDeploymentStatus}</p>
-                        <p><strong>Image déployée :</strong> ${deployedImage}</p>
+                        <p><strong>Image deployee :</strong> ${deployedImage}</p>
                         <p><strong>Deployments :</strong> mysql, spring-app</p>
                         
-                        <p>Voir les détails du build : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                        <p>Voir les details du build : <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                     """,
                     to: "mahdi.masmoudi@esprit.tn, mahdimasmoudi300@gmail.com",
                     mimeType: "text/html",
@@ -162,11 +162,11 @@ pipeline {
         }
 
         success {
-            echo 'BUILD ET DÉPLOIEMENT RÉUSSIS – Tout est vert !'
+            echo 'BUILD ET DEPLOIEMENT REUSSIS - Tout est vert !'
         }
 
         failure {
-            echo 'Le build ou le déploiement a échoué'
+            echo 'Le build ou le deploiement a echoue'
         }
     }
 }
