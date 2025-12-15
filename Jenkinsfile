@@ -70,13 +70,13 @@ pipeline {
                             
                             # Deployer MySQL
                             echo "=== Deploiement de MySQL ==="
-                            kubectl apply -f k8s/mysql-deployment.yaml
+                            kubectl apply -f mysql-deployment.yaml
                             kubectl rollout status deployment/mysql -n devops --timeout=2m
                             
                             # Mettre a jour image Spring App et deployer
                             echo "=== Deploiement de Spring App ==="
                             kubectl set image deployment/spring-app spring-app=${DOCKER_IMAGE_NAME}:${DOCKER_TAG} -n devops --record || true
-                            kubectl apply -f k8s/spring-deployment.yaml
+                            kubectl apply -f spring-deployment.yaml
                             
                             # Patcher le deployment pour utiliser la nouvelle image
                             kubectl patch deployment spring-app -n devops -p "{\\"spec\\":{\\"template\\":{\\"spec\\":{\\"containers\\":[{\\"name\\":\\"spring-app\\",\\"image\\":\\"${DOCKER_IMAGE_NAME}:${DOCKER_TAG}\\"}]}}}}"
@@ -103,13 +103,6 @@ pipeline {
                 def qgStatus = 'NON DETECTE'
                 def k8sDeploymentStatus = 'NON DISPONIBLE'
                 def deployedImage = 'NON DISPONIBLE'
-                
-                try {
-                    def qg = waitForQualityGate(abortPipeline: false)
-                    qgStatus = qg.status
-                } catch (err) {
-                    echo "Impossible de recuperer le Quality Gate : ${err}"
-                }
                 
                 try {
                     withKubeConfig([credentialsId: "${KUBECONFIG_CREDENTIALS}"]) {
@@ -170,4 +163,5 @@ pipeline {
         }
     }
 }
+
 
